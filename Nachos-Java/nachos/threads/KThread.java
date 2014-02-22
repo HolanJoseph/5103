@@ -151,8 +151,7 @@ public class KThread {
 		Lib.assertTrue(status == statusNew);
 		Lib.assertTrue(target != null);
 
-		Lib.debug(dbgThread, "Forking thread: " + toString() + " Runnable: "
-				+ target);
+		Lib.debug(dbgThread, "Forking thread: " + toString() + " Runnable: " + target);
 
 		boolean intStatus = Machine.interrupt().disable();
 
@@ -268,11 +267,14 @@ public class KThread {
 		Lib.debug(dbgThread, "Ready thread: " + toString());
 
 		Lib.assertTrue(Machine.interrupt().disabled());
+		// System.out.println(this.name + " has status: " + this.status);
 		Lib.assertTrue(status != statusReady);
 
 		status = statusReady;
-		if (this != idleThread)
+		if (this != idleThread) {
+			System.out.println("putting thread in map");
 			readyQueue.waitForAccess(this);
+		}
 
 		Machine.autoGrader().readyThread(this);
 	}
@@ -353,8 +355,7 @@ public class KThread {
 
 		currentThread.saveState();
 
-		Lib.debug(dbgThread, "Switching from: " + currentThread.toString()
-				+ " to: " + toString());
+		Lib.debug(dbgThread, "Switching from: " + currentThread.toString() + " to: " + toString());
 
 		currentThread = this;
 
@@ -401,13 +402,27 @@ public class KThread {
 
 		public void run() {
 			for (int i = 0; i < 5; i++) {
-				System.out.println("*** thread " + which + " looped " + i
-						+ " times");
+				System.out.println("*** thread " + which + " looped " + i + " times");
 				currentThread.yield();
 			}
 		}
 
 		private int which;
+	}
+
+	
+	public static void priorityTest(){
+		Lib.debug(dbgThread, "Enter KThread.priorityTest");
+		int num = Integer.parseInt(Config.getString("Kernel.numThreads"));
+		
+		for(int i = 0; i < num; i++){
+			KThread thread = new KThread(new PingTest(i)).setName("priorityThread " + i);
+			boolean status = Machine.interrupt().disable();
+			ThreadedKernel.scheduler.setPriority(thread, i);
+			thread.fork();
+		}
+		
+		
 	}
 
 	/**
@@ -417,10 +432,10 @@ public class KThread {
 		Lib.debug(dbgThread, "Enter KThread.selfTest");
 
 		int num = Integer.parseInt(Config.getString("Kernel.numThreads"));
-		for (int i = 0; i < num; i++) {
-			new KThread(new PingTest(i)).setName("forked thread").fork();
-		}
-
+		// for (int i = 0; i < num; i++) {
+		// new KThread(new PingTest(i)).setName("forked thread").fork();
+		//
+		// }
 	}
 
 	private static final char dbgThread = 't';

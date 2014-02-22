@@ -5,6 +5,7 @@ import nachos.threads.*;
 import nachos.userprog.*;
 import nachos.vm.*;
 import nachos.network.*;
+import nachos.network.MailMessage;
 
 /**
  * A kernel with network support.
