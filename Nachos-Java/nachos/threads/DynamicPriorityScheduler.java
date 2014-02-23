@@ -58,7 +58,11 @@ public class DynamicPriorityScheduler extends Scheduler {
 	public void setPriority(KThread thread, int priority) {
 		Lib.assertTrue(Machine.interrupt().disabled());
 
+<<<<<<< HEAD
 		Lib.assertTrue(priority >= maximumPriority && priority <= minimumPriority);
+=======
+		Lib.assertTrue(priority >= priorityMinimum && priority <= priorityMaximum);
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 
 		getThreadState(thread).setPriority(priority);
 	}
@@ -69,10 +73,18 @@ public class DynamicPriorityScheduler extends Scheduler {
 		KThread thread = KThread.currentThread();
 
 		int priority = getPriority(thread);
+<<<<<<< HEAD
 		if (priority == maximumPriority)
 			return false;
 
 		setPriority(thread, priority - 1);
+=======
+
+		if (priority == priorityMaximum)
+			return false;
+
+		setPriority(thread, priority + 1);
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 
 		Machine.interrupt().restore(intStatus);
 		return true;
@@ -84,16 +96,24 @@ public class DynamicPriorityScheduler extends Scheduler {
 		KThread thread = KThread.currentThread();
 
 		int priority = getPriority(thread);
+<<<<<<< HEAD
 		if (priority == minimumPriority)
 			return false;
 
 		setPriority(thread, priority + 1);
+=======
+		if (priority == priorityMinimum)
+			return false;
+
+		setPriority(thread, priority - 1);
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 
 		Machine.interrupt().restore(intStatus);
 		return true;
 	}
 
 	/**
+<<<<<<< HEAD
 	 * The minimum priority that a thread can have. Do not change this value.
 	 */
 	public static final int minimumPriority = Integer.parseInt(Config.getString("scheduler.maxPriorityValue"));;
@@ -111,6 +131,20 @@ public class DynamicPriorityScheduler extends Scheduler {
 	 * 
 	 */
 	public static final long agingTime = Long.parseLong(Config.getString("scheduler.agingTime"));
+=======
+	 * The default priority for a new thread. Do not change this value.
+	 */
+	public static final int priorityDefault = 1;
+	/**
+	 * The minimum priority that a thread can have. Do not change this value.
+	 */
+	public static final int priorityMinimum = 0;
+	/**
+	 * The maximum priority that a thread can have. Do not change this value.
+	 */
+	public static final int priorityMaximum = Integer.parseInt(Config.getString("scheduler.maxPriorityValue"));
+	public long agingTime = Integer.parseInt(Config.getString("scheduler.agingTime"));
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 
 	/**
 	 * Return the scheduling state of the specified thread.
@@ -131,11 +165,18 @@ public class DynamicPriorityScheduler extends Scheduler {
 	 */
 	protected class PriorityQueue extends ThreadQueue {
 
+<<<<<<< HEAD
 		private LinkedList<KThread> waitList;
 
 		PriorityQueue(boolean transferPriority) {
 			this.transferPriority = transferPriority;
 			waitList = new LinkedList<KThread>();
+=======
+		private LinkedList<KThread> waitList = new LinkedList<KThread>();
+
+		PriorityQueue(boolean transferPriority) {
+			this.transferPriority = transferPriority;
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		}
 
 		public void waitForAccess(KThread thread) {
@@ -150,7 +191,10 @@ public class DynamicPriorityScheduler extends Scheduler {
 
 		public KThread nextThread() {
 			Lib.assertTrue(Machine.interrupt().disabled());
+<<<<<<< HEAD
 			System.out.println("queue size: " + waitList.size());
+=======
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 			KThread priorityThread = null;
 			for (KThread currentThread : waitList) {
 				if (priorityThread == null) {
@@ -159,6 +203,7 @@ public class DynamicPriorityScheduler extends Scheduler {
 					priorityThread = currentThread;
 				}
 			}
+<<<<<<< HEAD
 			if (priorityThread != null)
 				getThreadState(priorityThread).acquire(this);
 			waitList.remove(priorityThread);
@@ -171,6 +216,15 @@ public class DynamicPriorityScheduler extends Scheduler {
 			return waitList.size();
 		}
 
+=======
+			acquire(priorityThread);
+			// if (priorityThread != null)
+			// System.out.println("next thread has priority: " +
+			// getPriority(priorityThread));
+			return priorityThread;
+		}
+
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		/**
 		 * Return the next thread that <tt>nextThread()</tt> would return,
 		 * without modifying the state of this queue.
@@ -184,7 +238,11 @@ public class DynamicPriorityScheduler extends Scheduler {
 			for (KThread currentThread : waitList) {
 				if (priorityThread == null) {
 					priorityThread = currentThread;
+<<<<<<< HEAD
 				} else if (getPriority(priorityThread) < getPriority(currentThread)) {
+=======
+				} else if (getPriority(priorityThread) > getPriority(currentThread)) {
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 					priorityThread = currentThread;
 				}
 			}
@@ -223,10 +281,15 @@ public class DynamicPriorityScheduler extends Scheduler {
 		 */
 		public ThreadState(KThread thread) {
 			this.thread = thread;
+<<<<<<< HEAD
 			this.priority = -1;
 			this.runningSince = -1;
 			this.waitingSince = -1;
 			this.waitQueue = null;
+=======
+			this.waitingSince = -1;
+			this.runningSince = -1;
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 			setPriority(priorityDefault);
 		}
 
@@ -236,6 +299,7 @@ public class DynamicPriorityScheduler extends Scheduler {
 		 * @return the priority of the associated thread.
 		 */
 		public int getPriority() {
+<<<<<<< HEAD
 			if(this.waitingSince < 0)
 				return priority;
 			
@@ -243,6 +307,10 @@ public class DynamicPriorityScheduler extends Scheduler {
 			this.priority = (int) Math.max(priority - waitingFor, minimumPriority);
 				
 			return priority;
+=======
+			this.priority += ((System.currentTimeMillis() - this.waitingSince) / agingTime);
+			return (priority = (priority > priorityMaximum) ? priorityMaximum : priority);
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		}
 
 		/**
@@ -252,7 +320,18 @@ public class DynamicPriorityScheduler extends Scheduler {
 		 */
 		public int getEffectivePriority() {
 			// implement me
+<<<<<<< HEAD
 			return priority;
+=======
+			int effectivePriority = 0;
+			for (KThread thread : this.waitQueue.waitList) {
+				if (thread != this.thread)
+					effectivePriority += DynamicPriorityScheduler.this.getPriority(thread);
+			}
+			effectivePriority = (priority > effectivePriority) ? priority : effectivePriority;
+			System.out.println("effective priority: " + effectivePriority);
+			return (effectivePriority > priorityMaximum) ? priorityMaximum : effectivePriority;
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		}
 
 		/**
@@ -286,6 +365,7 @@ public class DynamicPriorityScheduler extends Scheduler {
 			// implement me
 			if (waitQueue.waitList.contains(thread))
 				return;
+<<<<<<< HEAD
 
 			waitQueue.waitList.add(thread);
 			this.waitQueue = waitQueue;
@@ -300,6 +380,18 @@ public class DynamicPriorityScheduler extends Scheduler {
 				this.priority = (int) Math.min((priority + runningFor), minimumPriority);
 			}
 
+=======
+			
+			waitQueue.waitList.add(thread);
+			this.waitQueue = waitQueue;
+			this.waitingSince = System.currentTimeMillis();
+			
+			// if the thread has been run then we want to update its priority based on how long it's been running
+			if(this.runningSince > 0){
+				int decrement = (int) (System.currentTimeMillis() - this.runningSince);
+				this.setPriority(priority - decrement);
+			}
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		}
 
 		/**
@@ -314,6 +406,7 @@ public class DynamicPriorityScheduler extends Scheduler {
 		 */
 		public void acquire(PriorityQueue waitQueue) {
 			// implement me
+<<<<<<< HEAD
 			if (!waitQueue.waitList.contains(thread))
 				return;
 
@@ -323,6 +416,10 @@ public class DynamicPriorityScheduler extends Scheduler {
 			this.waitQueue = null;
 			
 
+=======
+			this.runningSince = System.currentTimeMillis();
+			waitQueue.waitList.remove(thread);
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 		}
 
 		/** The thread with which this object is associated. */
@@ -330,7 +427,12 @@ public class DynamicPriorityScheduler extends Scheduler {
 		/** The priority of the associated thread. */
 		protected int priority;
 		protected PriorityQueue waitQueue;
+<<<<<<< HEAD
 		protected long waitingSince = 0;
 		protected long runningSince = 0;
+=======
+		protected long waitingSince;
+		protected long runningSince;
+>>>>>>> f5d4e892151cb8f25bc7ce3b31b8f20da957b1ce
 	}
 }
