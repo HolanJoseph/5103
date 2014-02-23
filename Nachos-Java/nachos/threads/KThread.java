@@ -419,6 +419,7 @@ public class KThread {
 			KThread thread = new KThread(new PingTest(i)).setName("priorityThread " + i);
 			boolean status = Machine.interrupt().disable();
 			ThreadedKernel.scheduler.setPriority(thread, i);
+			Machine.interrupt().restore(status);
 			thread.fork();
 		}
 		

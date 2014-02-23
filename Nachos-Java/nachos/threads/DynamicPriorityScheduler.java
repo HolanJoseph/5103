@@ -23,12 +23,12 @@ import java.util.LinkedList;
  * A priority scheduler must partially solve the priority inversion problem; in
  * particular, priority must be donated through locks, and through joins.
  */
-public class StaticPriorityScheduler extends Scheduler {
+public class DynamicPriorityScheduler extends Scheduler {
 	/**
 	 * Allocate a new priority scheduler.
 	 */
 
-	public StaticPriorityScheduler() {
+	public DynamicPriorityScheduler() {
 	}
 
 	/**
@@ -58,7 +58,7 @@ public class StaticPriorityScheduler extends Scheduler {
 	public void setPriority(KThread thread, int priority) {
 		Lib.assertTrue(Machine.interrupt().disabled());
 
-		Lib.assertTrue(priority >= priorityMinimum && priority <= priorityMaximum);
+		Lib.assertTrue(priority >= maximumPriority && priority <= minimumPriority);
 
 		getThreadState(thread).setPriority(priority);
 	}
@@ -69,10 +69,10 @@ public class StaticPriorityScheduler extends Scheduler {
 		KThread thread = KThread.currentThread();
 
 		int priority = getPriority(thread);
-		if (priority == priorityMaximum)
+		if (priority == maximumPriority)
 			return false;
 
-		setPriority(thread, priority + 1);
+		setPriority(thread, priority - 1);
 
 		Machine.interrupt().restore(intStatus);
 		return true;
@@ -84,10 +84,10 @@ public class StaticPriorityScheduler extends Scheduler {
 		KThread thread = KThread.currentThread();
 
 		int priority = getPriority(thread);
-		if (priority == priorityMinimum)
+		if (priority == minimumPriority)
 			return false;
 
-		setPriority(thread, priority - 1);
+		setPriority(thread, priority + 1);
 
 		Machine.interrupt().restore(intStatus);
 		return true;
@@ -96,21 +96,21 @@ public class StaticPriorityScheduler extends Scheduler {
 	/**
 	 * The minimum priority that a thread can have. Do not change this value.
 	 */
-	public static final int priorityMinimum = 0;
+	public static final int minimumPriority = Integer.parseInt(Config.getString("scheduler.maxPriorityValue"));;
 	/**
 	 * The maximum priority that a thread can have. Do not change this value.
 	 */
-	public static final int priorityMaximum = Integer.parseInt(Config.getString("scheduler.maxPriorityValue"));
+	public static final int maximumPriority = 0;
 
 	/**
 	 * The default priority for a new thread. Do not change this value.
 	 */
-	public static final int priorityDefault = (priorityMaximum + priorityMinimum) / 2;
+	public static final int priorityDefault = (minimumPriority + maximumPriority) / 2;
 
 	/**
 	 * 
 	 */
-	//public static final long agingTime = Long.parseLong(Config.getString("scheduler.agingTime"));
+	public static final long agingTime = Long.parseLong(Config.getString("scheduler.agingTime"));
 
 	/**
 	 * Return the scheduling state of the specified thread.
@@ -131,10 +131,11 @@ public class StaticPriorityScheduler extends Scheduler {
 	 */
 	protected class PriorityQueue extends ThreadQueue {
 
-		private LinkedList<KThread> waitList = new LinkedList<KThread>();
+		private LinkedList<KThread> waitList;
 
 		PriorityQueue(boolean transferPriority) {
 			this.transferPriority = transferPriority;
+			waitList = new LinkedList<KThread>();
 		}
 
 		public void waitForAccess(KThread thread) {
@@ -222,7 +223,10 @@ public class StaticPriorityScheduler extends Scheduler {
 		 */
 		public ThreadState(KThread thread) {
 			this.thread = thread;
-
+			this.priority = -1;
+			this.runningSince = -1;
+			this.waitingSince = -1;
+			this.waitQueue = null;
 			setPriority(priorityDefault);
 		}
 
@@ -232,6 +236,12 @@ public class StaticPriorityScheduler extends Scheduler {
 		 * @return the priority of the associated thread.
 		 */
 		public int getPriority() {
+			if(this.waitingSince < 0)
+				return priority;
+			
+			int waitingFor = (int) ((System.currentTimeMillis() - this.waitingSince) / agingTime);
+			this.priority = (int) Math.max(priority - waitingFor, minimumPriority);
+				
 			return priority;
 		}
 
@@ -274,11 +284,22 @@ public class StaticPriorityScheduler extends Scheduler {
 		 */
 		public void waitForAccess(PriorityQueue waitQueue) {
 			// implement me
-			if (!waitQueue.waitList.contains(thread)) {
-				waitQueue.waitList.add(thread);
-				this.waitQueue = waitQueue;
-				this.waitingSince = System.currentTimeMillis();
+			if (waitQueue.waitList.contains(thread))
+				return;
+
+			waitQueue.waitList.add(thread);
+			this.waitQueue = waitQueue;
+			this.waitingSince = System.currentTimeMillis();
+
+			/**
+			 * if the thread has been running then we want to decrement its priority (which means adding to it for some reason)
+			 * by the amount of time it's been running divided by some constant provided in the configuration file
+			 */
+			if (this.runningSince > 0) {
+				long runningFor = (System.currentTimeMillis() - this.runningSince) / agingTime;
+				this.priority = (int) Math.min((priority + runningFor), minimumPriority);
 			}
+
 		}
 
 		/**
@@ -293,11 +314,15 @@ public class StaticPriorityScheduler extends Scheduler {
 		 */
 		public void acquire(PriorityQueue waitQueue) {
 			// implement me
-			if (waitQueue.waitList.contains(thread)) {
-				waitQueue.waitList.remove(thread);
-				this.runningSince = System.currentTimeMillis();
-				this.waitQueue = null;
-			}
+			if (!waitQueue.waitList.contains(thread))
+				return;
+
+			waitQueue.waitList.remove(thread);
+			this.runningSince = System.currentTimeMillis();
+			this.waitingSince = -1;
+			this.waitQueue = null;
+			
+
 		}
 
 		/** The thread with which this object is associated. */
@@ -305,7 +330,7 @@ public class StaticPriorityScheduler extends Scheduler {
 		/** The priority of the associated thread. */
 		protected int priority;
 		protected PriorityQueue waitQueue;
-		protected long waitingSince;
-		protected long runningSince;
+		protected long waitingSince = 0;
+		protected long runningSince = 0;
 	}
 }
